@@ -67,4 +67,4 @@ Vault Contract
 -Ensure that you have your MetaMask configured to interact with the Avalanche network for successful deployment and interactions.
 
 Author:
-[Parijat Ghosh](https://github.com/ParijatGhosh)
+[Kirtan Nahar](https://github.com/notkirtann)
