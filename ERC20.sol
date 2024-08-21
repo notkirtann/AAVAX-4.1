@@ -9,23 +9,23 @@ contract ERC20 {
     string public symbol = "CR7";
     uint8 public decimals = 18;
 
-		event Transfer(address indexed from, address indexed to, uint value);
+    event Transfer(address indexed from, address indexed to, uint value);
     event Approval(address indexed owner, address indexed spender, uint value);
 
-    function transfer(address recipient, uint amount) external returns (bool) {
+    function sendTokens(address recipient, uint amount) external returns (bool) {
         balanceOf[msg.sender] -= amount;
         balanceOf[recipient] += amount;
         emit Transfer(msg.sender, recipient, amount);
         return true;
     }
 
-    function approve(address spender, uint amount) external returns (bool) {
+    function authorizeSpender(address spender, uint amount) external returns (bool) {
         allowance[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
         return true;
     }
 
-    function transferFrom(
+    function spendFrom(
         address sender,
         address recipient,
         uint amount
@@ -37,13 +37,13 @@ contract ERC20 {
         return true;
     }
 
-    function mint(uint amount) external {
+    function createTokens(uint amount) external {
         balanceOf[msg.sender] += amount;
         totalSupply += amount;
         emit Transfer(address(0), msg.sender, amount);
     }
 
-    function burn(uint amount) external {
+    function destroyTokens(uint amount) external {
         balanceOf[msg.sender] -= amount;
         totalSupply -= amount;
         emit Transfer(msg.sender, address(0), amount);
