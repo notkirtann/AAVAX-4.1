@@ -13,72 +13,72 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint value);
 }
 
-contract Vault {
-    IERC20 public immutable token;
+contract SafeVault {
+    IERC20 public immutable asset;
 
-    uint public totalSupply;
-    mapping(address => uint) public balanceOf;
+    uint public totalUnits;
+    mapping(address => uint) public unitBalance;
 
-    constructor(address _token) {
-        token = IERC20(_token);
+    constructor(address _asset) {
+        asset = IERC20(_asset);
     }
 
-    function _mint(address _to, uint _shares) private {
-        totalSupply += _shares;
-        balanceOf[_to] += _shares;
+    function _addUnits(address _recipient, uint _units) private {
+        totalUnits += _units;
+        unitBalance[_recipient] += _units;
     }
 
-    function _burn(address _from, uint _shares) private {
-        totalSupply -= _shares;
-        balanceOf[_from] -= _shares;
+    function _removeUnits(address _sender, uint _units) private {
+        totalUnits -= _units;
+        unitBalance[_sender] -= _units;
     }
 
-    function deposit(uint _amount) external {
-        uint shares;
-        if (totalSupply == 0) {
-            shares = _amount;
+    function addAsset(uint _amount) external {
+        uint units;
+        if (totalUnits == 0) {
+            units = _amount;
         } else {
-            shares = (_amount * totalSupply) / token.balanceOf(address(this));
+            units = (_amount * totalUnits) / asset.balanceOf(address(this));
         }
 
-        _mint(msg.sender, shares);
-        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
-        emit Deposit(msg.sender, msg.sender, _amount, shares);
+        _addUnits(msg.sender, units);
+        require(asset.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
+        emit AssetAdded(msg.sender, msg.sender, _amount, units);
     }
 
-    function withdraw(uint _shares) external {
-        uint amount = (_shares * token.balanceOf(address(this))) / totalSupply;
-        _burn(msg.sender, _shares);
-        require(token.transfer(msg.sender, amount), "Transfer failed");
-        emit Withdraw(msg.sender, msg.sender, msg.sender, amount, _shares);
+    function removeAsset(uint _units) external {
+        uint amount = (_units * asset.balanceOf(address(this))) / totalUnits;
+        _removeUnits(msg.sender, _units);
+        require(asset.transfer(msg.sender, amount), "Transfer failed");
+        emit AssetRemoved(msg.sender, msg.sender, msg.sender, amount, _units);
     }
 
-    function getPricePerShare() public view returns (uint) {
-        if (totalSupply == 0) {
+    function calculateUnitPrice() public view returns (uint) {
+        if (totalUnits == 0) {
             return 1e18;
         }
-        return (token.balanceOf(address(this)) * 1e18) / totalSupply;
+        return (asset.balanceOf(address(this)) * 1e18) / totalUnits;
     }
 
-    function depositFor(address _for, uint _amount) external returns (uint shares) {
-        shares = (_amount * totalSupply) / token.balanceOf(address(this));
-        if (shares == 0) revert("Cannot mint 0 shares");
-        _mint(_for, shares);
-        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
-        emit Deposit(msg.sender, _for, _amount, shares);
+    function addAssetFor(address _recipient, uint _amount) external returns (uint units) {
+        units = (_amount * totalUnits) / asset.balanceOf(address(this));
+        if (units == 0) revert("Cannot mint 0 units");
+        _addUnits(_recipient, units);
+        require(asset.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
+        emit AssetAdded(msg.sender, _recipient, _amount, units);
     }
 
-    function previewWithdraw(uint _shares) public view returns (uint) {
-        return (_shares * token.balanceOf(address(this))) / totalSupply;
+    function estimateWithdrawal(uint _units) public view returns (uint) {
+        return (_units * asset.balanceOf(address(this))) / totalUnits;
     }
 
-    function sweep(address _token) external {
-        require(_token != address(token), "Cannot sweep vault token");
-        IERC20 otherToken = IERC20(_token);
-        uint balance = otherToken.balanceOf(address(this));
-        require(otherToken.transfer(msg.sender, balance), "Sweep transfer failed");
+    function clearAsset(address _token) external {
+        require(_token != address(asset), "Cannot clear primary asset");
+        IERC20 altToken = IERC20(_token);
+        uint balance = altToken.balanceOf(address(this));
+        require(altToken.transfer(msg.sender, balance), "Clear transfer failed");
     }
 
-    event Deposit(address indexed caller, address indexed owner, uint assets, uint shares);
-    event Withdraw(address indexed caller, address indexed receiver, address indexed owner, uint assets, uint shares);
+    event AssetAdded(address indexed caller, address indexed owner, uint amount, uint units);
+    event AssetRemoved(address indexed caller, address indexed receiver, address indexed owner, uint amount, uint units);
 }
